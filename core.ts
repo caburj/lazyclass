@@ -45,7 +45,7 @@ export type OtherProduct = Product & {
 };
 
 export const OtherProductDef = defclass<OtherProduct>(() => {
-  class OtherProduct extends ProductDef.getcompiled() {
+  class OtherProduct extends ProductDef.getCompiled() {
     x = '';
     getX() {
       return this.x;

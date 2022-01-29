@@ -2,18 +2,18 @@ export abstract class InitializedBase {
   constructor(...args: unknown[]) {
     this.initialize(...args);
   }
-  initialize(...args: unknown[]) {}
+  initialize(..._args: unknown[]) {}
 }
 
 type Definition<T extends InitializedBase> = {
-  getcompiled(): GenericConstructor<T>;
+  getCompiled(): GenericConstructor<T>;
   instantiate(...args: Parameters<T['initialize']>): T;
   getBase(): () => GenericConstructor<T>;
 };
 
 export type ExtensionSpec<
-  BaseInterface extends unknown = unknown,
-  Extension extends unknown = unknown
+  BaseInterface extends InitializedBase = any,
+  Extension extends Record<never, never> = any
 > = {
   BaseInterface: BaseInterface;
   Extension: Extension;
@@ -41,14 +41,14 @@ export function defclass<I extends InitializedBase>(
   let compiled: GenericConstructor<I> | undefined;
   extensions.set(callback, []);
   return {
-    getcompiled(): GenericConstructor<I> {
+    getCompiled(): GenericConstructor<I> {
       if (compiled) {
         return compiled;
       }
       return extensions.get(callback)!.reduce((acc, cb) => cb(acc), callback());
     },
     instantiate(...args: Parameters<I['initialize']>): I {
-      const Class = compiled ? compiled : this.getcompiled();
+      const Class = compiled ? compiled : this.getCompiled();
       const newInstance = new Class();
       newInstance.initialize(...args);
       return newInstance;
@@ -59,12 +59,16 @@ export function defclass<I extends InitializedBase>(
   };
 }
 
-export declare function extend<Spec extends ExtensionSpec>(
-  className: string,
-  callback: (
+export function extend<Spec extends ExtensionSpec>(
+  def: Definition<Spec['BaseInterface']>,
+  extensionCB: (
     base: GenericConstructor<Spec['BaseInterface']>
   ) => ExtendedInterfaceConstructor<Spec>
-): void;
+): Definition<ExtendedInterface<Spec>> {
+  const base = def.getBase();
+  extensions.get(base)!.push(extensionCB);
+  return def;
+}
 
 export function whenReady(callback: () => Promise<void>): void {
   window.onload = async () => {
