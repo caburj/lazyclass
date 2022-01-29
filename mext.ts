@@ -36,21 +36,27 @@ const extensions: Map<
   Array<(base: Constructor) => Constructor>
 > = new Map();
 
+// How about an oversion that allows normal class as base?
+// But this will make the code more complicated and will
+// introduce more ways on declaring a class. This module is
+// already opinionated, let's stay opinionated and only allow
+// one way of declaring a class definition.
 export function defclass<I extends InitializedBase>(
   callback: () => InterfaceConstructor<I>
 ): Definition<I> {
   let compiled: GenericConstructor<I> | undefined;
-  extensions.set(callback, []);
+  const extensionCBs: Array<(base: Constructor) => Constructor> = [];
+  extensions.set(callback, extensionCBs);
   return {
     getCompiled(): GenericConstructor<I> {
       if (compiled) {
         return compiled;
       }
-      compiled = extensions.get(callback)!.reduce((acc, cb) => cb(acc), callback());
+      compiled = extensionCBs.reduce((acc, cb) => cb(acc), callback());
       return compiled;
     },
     instantiate(...args: Parameters<I['initialize']>): I {
-      const Class = compiled ? compiled : this.getCompiled();
+      const Class = this.getCompiled();
       const newInstance = new Class();
       newInstance.initialize(...args);
       return newInstance;
@@ -72,6 +78,12 @@ export function extend<Spec extends ExtensionSpec>(
   ) => ExtendedInterfaceConstructor<Spec>
 ): Definition<ExtendedInterface<Spec>> {
   const base = def.getBase();
-  extensions.get(base)!.push(extensionCB);
+  const extensionCBs = extensions.get(base);
+  if (!extensionCBs) {
+    throw new Error(
+      'Base definition not found. Use `defclass` for initial definition.'
+    );
+  }
+  extensionCBs.push(extensionCB);
   return def;
 }
