@@ -1,14 +1,14 @@
-import { OrderlineExt1 } from './extension1.ts';
-import { Extension, extend } from './mext.ts';
+import { OrderlineExtSpec1 } from './extension1.ts';
+import { extend, ExtendedInterface, ExtensionSpec } from './mext.ts';
 
-export type OrderlineExt2 = Extension<
-  OrderlineExt1,
+export type OrderlineExtSpec2 = ExtensionSpec<
+  ExtendedInterface<OrderlineExtSpec1>,
   {
     getValidTaxes(): number[];
   }
 >;
 
-extend<OrderlineExt2>('Orderline', (Orderline) => {
+extend<OrderlineExtSpec2>('Orderline', (Orderline) => {
   class ExtendedOrderline2 extends Orderline {
     getValidTaxes() {
       const validTaxes = [];

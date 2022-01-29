@@ -1,19 +1,19 @@
-import type { OrderDef, OrderlineDef, ProductDef } from './core.ts';
-import { extend, Interface, Extension } from './mext.ts';
+import type { Order, Orderline, Product } from './core.ts';
+import { extend, ExtensionSpec } from './mext.ts';
 
-export type OrderExt1 = Extension<
-  OrderDef,
+export type OrderExtSpec1 = ExtensionSpec<
+  Order,
   {
-    checkBeforeAdd(product: Interface<ProductDef>): boolean;
+    checkBeforeAdd(product: Product): boolean;
   }
 >;
 
-extend<OrderExt1>('Order', (Order) => {
+extend<OrderExtSpec1>('Order', (Order) => {
   class ExtendedOrder1 extends Order {
-    checkBeforeAdd(product: Interface<ProductDef>) {
+    checkBeforeAdd(product: Product) {
       return product.name !== 'xxx';
     }
-    addProduct(product: Interface<ProductDef>) {
+    addProduct(product: Product) {
       if (this.checkBeforeAdd(product)) {
         super.addProduct(product);
       }
@@ -22,23 +22,19 @@ extend<OrderExt1>('Order', (Order) => {
   return ExtendedOrder1;
 });
 
-export type OrderlineExt1 = Extension<
-  OrderlineDef,
+export type OrderlineExtSpec1 = ExtensionSpec<
+  Orderline,
   {
     taxes: number[];
+    setTaxes(taxes: number[]): void;
     getTaxes(): number[];
   }
 >;
 
-extend<OrderlineExt1>('Orderline', (Orderline) => {
+extend<OrderlineExtSpec1>('Orderline', (Orderline) => {
   class ExtendedOrderline1 extends Orderline {
     taxes: number[] = [];
-    constructor(
-      product: Interface<ProductDef>,
-      quantity: number,
-      taxes: number[]
-    ) {
-      super(product, quantity);
+    setTaxes(taxes: number[]) {
       this.taxes.push(...taxes);
     }
     getTaxes() {

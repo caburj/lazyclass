@@ -1,16 +1,24 @@
-import { define, instantiate, getClass, Define, Interface } from './mext.ts';
+import { define, instantiate, getClass, InitializedBase } from './mext.ts';
 
-export type MainDef = Define<
-  {
-    message: string;
-    initialize(message: string): void;
-    run(): void;
-    configure(): Promise<void>;
+declare global {
+  interface Interfaces {
+    Main: Main;
+    Product: Product;
+    OtherProduct: OtherProduct;
+    Orderline: Orderline;
+    Order: Order;
   }
->;
+}
 
-define<MainDef>('Main', () => {
-  class Main {
+export type Main = {
+  message: string;
+  initialize(message: string): void;
+  run(): void;
+  configure(): Promise<void>;
+};
+
+define('Main', () => {
+  class Main extends InitializedBase {
     message = '';
     initialize(message: string) {
       this.message = message;
@@ -23,16 +31,14 @@ define<MainDef>('Main', () => {
   return Main;
 });
 
-export type ProductDef = Define<
-  {
-    name: string;
-    unitPrice: number;
-    initialize(name: string, unitPrice: number): void;
-  }
->;
+export type Product = {
+  name: string;
+  unitPrice: number;
+  initialize(name: string, unitPrice: number): void;
+};
 
-define<ProductDef>('Product', () => {
-  class Product {
+define('Product', () => {
+  class Product extends InitializedBase {
     name = '';
     unitPrice = 0;
     initialize(name: string, unitPrice: number) {
@@ -43,17 +49,14 @@ define<ProductDef>('Product', () => {
   return Product;
 });
 
-export type OtherProductDef = Define<
-  Interface<ProductDef> & {
-    x: string;
-    getX(): string;
-  }
->;
+export type OtherProduct = Product & {
+  x: string;
+  getX(): string;
+};
 
-define<OtherProductDef>('OtherProduct', () => {
-  class OtherProduct extends getClass<ProductDef>('Product') {
+define('OtherProduct', () => {
+  class OtherProduct extends getClass('Product') {
     x = '';
-    initialize() {}
     getX() {
       return this.x;
     }
@@ -61,20 +64,18 @@ define<OtherProductDef>('OtherProduct', () => {
   return OtherProduct;
 });
 
-export type OrderlineDef = Define<
-  {
-    product: Interface<ProductDef>;
-    quantity: number;
-    initialize(product: Interface<ProductDef>, quantity: number): void;
-    getTotal(): number;
-  }
->;
+export type Orderline = {
+  product: Product;
+  quantity: number;
+  initialize(product: Product, quantity: number): void;
+  getTotal(): number;
+};
 
-define<OrderlineDef>('Orderline', () => {
-  class Orderline {
-    product!: Interface<ProductDef>;
+define('Orderline', () => {
+  class Orderline extends InitializedBase {
+    product!: Product;
     quantity = 0;
-    initialize(product: Interface<ProductDef>, quantity: number) {
+    initialize(product: Product, quantity: number) {
       this.product = product;
       this.quantity = quantity;
     }
@@ -85,18 +86,17 @@ define<OrderlineDef>('Orderline', () => {
   return Orderline;
 });
 
-export type OrderDef = Define<{
-  orderlines: Interface<OrderlineDef>[];
+export type Order = {
+  orderlines: Orderline[];
   initialize(): void;
-  addProduct(product: Interface<ProductDef>): void;
+  addProduct(product: Product): void;
   getTotal(): number;
-}>;
+};
 
-define<OrderDef>('Order', () => {
-  class Order {
-    orderlines: Interface<OrderlineDef>[] = [];
-    initialize() {}
-    addProduct(product: Interface<ProductDef>) {
+define('Order', () => {
+  class Order extends InitializedBase {
+    orderlines: Orderline[] = [];
+    addProduct(product: Product) {
       let added = false;
       for (const line of this.orderlines) {
         if (line.product === product) {
@@ -105,7 +105,7 @@ define<OrderDef>('Order', () => {
         }
       }
       if (!added) {
-        const newLine = instantiate<OrderlineDef>('Orderline', product, 1);
+        const newLine = instantiate('Orderline', product, 1);
         this.orderlines.push(newLine);
       }
     }
