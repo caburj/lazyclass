@@ -3,10 +3,10 @@ import { define, instantiate, getClass, Define, Interface } from './mext.ts';
 export type MainDef = Define<
   {
     message: string;
+    initialize(message: string): void;
     run(): void;
     configure(): Promise<void>;
-  },
-  [message: string]
+  }
 >;
 
 define<MainDef>('Main', () => {
@@ -27,8 +27,8 @@ export type ProductDef = Define<
   {
     name: string;
     unitPrice: number;
-  },
-  [name: string, unitPrice: number]
+    initialize(name: string, unitPrice: number): void;
+  }
 >;
 
 define<ProductDef>('Product', () => {
@@ -67,8 +67,7 @@ export type OrderlineDef = Define<
     quantity: number;
     initialize(product: Interface<ProductDef>, quantity: number): void;
     getTotal(): number;
-  },
-  [product: Interface<ProductDef>, quantity: number]
+  }
 >;
 
 define<OrderlineDef>('Orderline', () => {
@@ -88,6 +87,7 @@ define<OrderlineDef>('Orderline', () => {
 
 export type OrderDef = Define<{
   orderlines: Interface<OrderlineDef>[];
+  initialize(): void;
   addProduct(product: Interface<ProductDef>): void;
   getTotal(): number;
 }>;
