@@ -1,8 +1,8 @@
 export abstract class InitializedBase {
-  constructor(...args: any[]) {
+  constructor(...args: unknown[]) {
     this.initialize(...args);
   }
-  initialize(...args: any[]) {}
+  initialize(...args: unknown[]) {}
 }
 
 export type ExtensionSpec<
@@ -22,14 +22,14 @@ type ExtendedInterfaceConstructor<Spec extends ExtensionSpec> = GenericConstruct
   Spec['BaseInterface'] & Spec['Extension']
 >;
 
-type GenericConstructor<T> = new (...args: any[]) => T;
+type GenericConstructor<T> = new (...args: unknown[]) => T;
 
-export declare function define<I extends InitializedBase>(
+export declare function defclass<I extends InitializedBase>(
   className: string,
   callback: () => InterfaceConstructor<I>
 ): void;
 
-export declare function getClass<I extends InitializedBase>(
+export declare function getclass<I extends InitializedBase>(
   className: string
 ): InterfaceConstructor<I>;
 

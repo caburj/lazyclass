@@ -1,4 +1,4 @@
-import { define, instantiate, getClass, InitializedBase } from './mext.ts';
+import { defclass, instantiate, getclass, InitializedBase } from './mext.ts';
 
 export type Main = {
   message: string;
@@ -7,7 +7,7 @@ export type Main = {
   configure(): Promise<void>;
 };
 
-define<Main>('Main', () => {
+defclass<Main>('Main', () => {
   class Main extends InitializedBase {
     message = '';
     initialize(message: string) {
@@ -27,7 +27,7 @@ export type Product = {
   initialize(name: string, unitPrice: number): void;
 };
 
-define<Product>('Product', () => {
+defclass<Product>('Product', () => {
   class Product extends InitializedBase {
     name = '';
     unitPrice = 0;
@@ -44,8 +44,8 @@ export type OtherProduct = Product & {
   getX(): string;
 };
 
-define<OtherProduct>('OtherProduct', () => {
-  class OtherProduct extends getClass<Product>('Product') {
+defclass<OtherProduct>('OtherProduct', () => {
+  class OtherProduct extends getclass<Product>('Product') {
     x = '';
     getX() {
       return this.x;
@@ -61,7 +61,7 @@ export type Orderline = {
   getTotal(): number;
 };
 
-define<Orderline>('Orderline', () => {
+defclass<Orderline>('Orderline', () => {
   class Orderline extends InitializedBase {
     product!: Product;
     quantity = 0;
@@ -83,7 +83,7 @@ export type Order = {
   getTotal(): number;
 };
 
-define<Order>('Order', () => {
+defclass<Order>('Order', () => {
   class Order extends InitializedBase {
     orderlines: Orderline[] = [];
     addProduct(product: Product) {
