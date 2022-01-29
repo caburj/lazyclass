@@ -9,6 +9,7 @@ type Definition<T extends InitializedBase> = {
   getCompiled(): GenericConstructor<T>;
   instantiate(...args: Parameters<T['initialize']>): T;
   getBase(): () => GenericConstructor<T>;
+  isInstance(obj: any): boolean;
 };
 
 export type ExtensionSpec<
@@ -45,7 +46,8 @@ export function defclass<I extends InitializedBase>(
       if (compiled) {
         return compiled;
       }
-      return extensions.get(callback)!.reduce((acc, cb) => cb(acc), callback());
+      compiled = extensions.get(callback)!.reduce((acc, cb) => cb(acc), callback());
+      return compiled;
     },
     instantiate(...args: Parameters<I['initialize']>): I {
       const Class = compiled ? compiled : this.getCompiled();
@@ -55,6 +57,10 @@ export function defclass<I extends InitializedBase>(
     },
     getBase() {
       return callback;
+    },
+    isInstance(obj: I) {
+      const result = obj instanceof this.getCompiled();
+      return result;
     },
   };
 }
