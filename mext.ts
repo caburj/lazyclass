@@ -5,9 +5,10 @@ export abstract class InitializedBase {
   initialize(...args: unknown[]) {}
 }
 
-type ClassDefinition<T extends InitializedBase> = {
-  getcompiled(): Constructor<T>;
+type Definition<T extends InitializedBase> = {
+  getcompiled(): GenericConstructor<T>;
   instantiate(...args: Parameters<T['initialize']>): T;
+  getBase(): () => GenericConstructor<T>;
 };
 
 export type ExtensionSpec<
@@ -21,22 +22,52 @@ export type ExtensionSpec<
 export type ExtendedInterface<Spec extends ExtensionSpec> =
   Spec['BaseInterface'] & Spec['Extension'];
 
-type InterfaceConstructor<I extends InitializedBase> = Constructor<I>;
+type InterfaceConstructor<I extends InitializedBase> = GenericConstructor<I>;
 
 type ExtendedInterfaceConstructor<Spec extends ExtensionSpec> =
-  Constructor<Spec['BaseInterface'] & Spec['Extension']>;
+  GenericConstructor<Spec['BaseInterface'] & Spec['Extension']>;
 
-type Constructor<T> = new (...args: unknown[]) => T;
+type GenericConstructor<T> = new (...args: unknown[]) => T;
+type Constructor = new (...args: unknown[]) => any;
 
-export declare function defclass<I extends InitializedBase>(
+const extensions: Map<
+  () => Constructor,
+  Array<(base: Constructor) => Constructor>
+> = new Map();
+
+export function defclass<I extends InitializedBase>(
   callback: () => InterfaceConstructor<I>
-): ClassDefinition<I>;
+): Definition<I> {
+  let compiled: GenericConstructor<I> | undefined;
+  extensions.set(callback, []);
+  return {
+    getcompiled(): GenericConstructor<I> {
+      if (compiled) {
+        return compiled;
+      }
+      return extensions.get(callback)!.reduce((acc, cb) => cb(acc), callback());
+    },
+    instantiate(...args: Parameters<I['initialize']>): I {
+      const Class = compiled ? compiled : this.getcompiled();
+      const newInstance = new Class();
+      newInstance.initialize(...args);
+      return newInstance;
+    },
+    getBase() {
+      return callback;
+    },
+  };
+}
 
 export declare function extend<Spec extends ExtensionSpec>(
   className: string,
   callback: (
-    base: Constructor<Spec['BaseInterface']>
+    base: GenericConstructor<Spec['BaseInterface']>
   ) => ExtendedInterfaceConstructor<Spec>
 ): void;
 
-export declare function whenReady(callback: () => Promise<void>): void;
+export function whenReady(callback: () => Promise<void>): void {
+  window.onload = async () => {
+    await callback();
+  };
+}
