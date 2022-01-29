@@ -75,9 +75,3 @@ export function extend<Spec extends ExtensionSpec>(
   extensions.get(base)!.push(extensionCB);
   return def;
 }
-
-export function whenReady(callback: () => Promise<void>): void {
-  window.onload = async () => {
-    await callback();
-  };
-}
