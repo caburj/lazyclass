@@ -5,6 +5,11 @@ export abstract class InitializedBase {
   initialize(...args: unknown[]) {}
 }
 
+type ClassDefinition<T extends InitializedBase> = {
+  getcompiled(): Constructor<T>;
+  instantiate(...args: Parameters<T['initialize']>): T;
+};
+
 export type ExtensionSpec<
   BaseInterface extends unknown = unknown,
   Extension extends unknown = unknown
@@ -16,34 +21,22 @@ export type ExtensionSpec<
 export type ExtendedInterface<Spec extends ExtensionSpec> =
   Spec['BaseInterface'] & Spec['Extension'];
 
-type InterfaceConstructor<I extends InitializedBase> = GenericConstructor<I>;
+type InterfaceConstructor<I extends InitializedBase> = Constructor<I>;
 
-type ExtendedInterfaceConstructor<Spec extends ExtensionSpec> = GenericConstructor<
-  Spec['BaseInterface'] & Spec['Extension']
->;
+type ExtendedInterfaceConstructor<Spec extends ExtensionSpec> =
+  Constructor<Spec['BaseInterface'] & Spec['Extension']>;
 
-type GenericConstructor<T> = new (...args: unknown[]) => T;
+type Constructor<T> = new (...args: unknown[]) => T;
 
 export declare function defclass<I extends InitializedBase>(
-  className: string,
   callback: () => InterfaceConstructor<I>
-): void;
-
-export declare function getclass<I extends InitializedBase>(
-  className: string
-): InterfaceConstructor<I>;
+): ClassDefinition<I>;
 
 export declare function extend<Spec extends ExtensionSpec>(
   className: string,
   callback: (
-    base: GenericConstructor<Spec['BaseInterface']>
+    base: Constructor<Spec['BaseInterface']>
   ) => ExtendedInterfaceConstructor<Spec>
 ): void;
-
-// instantiate should call constructor.
-export declare function instantiate<I extends InitializedBase>(
-  className: string,
-  ...args: Parameters<I['initialize']>
-): I;
 
 export declare function whenReady(callback: () => Promise<void>): void;
