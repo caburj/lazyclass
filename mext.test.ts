@@ -1,5 +1,5 @@
 import { assertEquals } from 'https://deno.land/std@0.122.0/testing/asserts.ts';
-import { defclass, extend, CompiledType } from './mext.ts';
+import { defclass, extend, ExtractClass } from './mext.ts';
 
 Deno.test({
   name: 'simple class',
@@ -107,9 +107,9 @@ Deno.test({
 
     const Orderline = defclass(() => {
       return class Orderline {
-        product!: CompiledType<typeof Product>;
+        product!: ExtractClass<typeof Product>;
         quantity = 0;
-        initialize(product: CompiledType<typeof Product>, quantity = 1) {
+        initialize(product: ExtractClass<typeof Product>, quantity = 1) {
           this.product = product;
           this.quantity = quantity;
         }
@@ -130,7 +130,7 @@ Deno.test({
         }
       };
     });
-    type XProduct = CompiledType<typeof XProduct>;
+    type XProduct = ExtractClass<typeof XProduct>;
 
     extend(Orderline, (Orderline) => {
       return class XOrderline extends Orderline {

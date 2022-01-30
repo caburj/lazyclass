@@ -76,7 +76,17 @@ type Compiled<T extends ExtensionDefinition<any, any>> = ReturnType<
   T['getCompiled']
 >;
 
-export type CompiledType<T extends any> = T extends ExtensionDefinition<
+/**
+ * Use this to extract the compiled class from the definition.
+ * Sample:
+ * ```js
+ * const NewClass = defclass(() => class NewClass {});
+ * type NewClass = ExtractClass<typeof NewClass>;
+ * // You can now use the above type to type an instance like so:
+ * const newInstance: NewClass = NewClass.instantiate();
+ * ```
+ */
+export type ExtractClass<T extends any> = T extends ExtensionDefinition<
   any,
   any
 >
