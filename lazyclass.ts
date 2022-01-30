@@ -18,6 +18,7 @@ const extensions: Map<
 
 /**
  * Defines a lazy class.
+ *
  * @param callback - use to lazily define the class
  * @returns a definition used to interface with the lazy class
  */
@@ -53,6 +54,7 @@ function defclass<Base extends Initialized>(
 
 /**
  * Extends a lazy class definition using an extension callback.
+ *
  * @param def - from the result of `defclass`
  * @param extension - a callback to apply to the lazy class.
  * @returns the given definition but typed to have the extension.
@@ -75,12 +77,18 @@ function extend<Base extends Initialized = any, Extension extends Base = any>(
 
 /**
  * Use this generic type to extract the compiled class from a definition.
- * Sample:
+ * Extracting types can be useful when working with extended instances.
+ * A good pattern is to create a type right after class definition or
+ * extension.
+ *
+ * Example:
  * ```js
  * const NewClass = defclass(() => class NewClass {});
  * type NewClass = ExtractClass<typeof NewClass>;
  * // You can now use the above type to type an instance like so:
  * const newInstance: NewClass = NewClass.instantiate();
+ * // But there is actually no need for explicit type because
+ * // `instantiate` call returns with proper type.
  * ```
  */
 type ExtractClass<T extends any> = T extends ExtensionDefinition<any, any>
