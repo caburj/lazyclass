@@ -72,7 +72,7 @@ Deno.test({
       };
     });
 
-    const main = ExtMain.instantiate(0);
+    const main = Main.instantiate(0);
     assertEquals(main.num, 0);
     main.increment(1);
     assertEquals(main.num, 2);
@@ -91,6 +91,7 @@ Deno.test({
 Deno.test({
   name: 'return other extended type',
   fn() {
+    // Base definitions module
     const Product = defclass(() => {
       return class Product {
         name = '';
@@ -104,12 +105,13 @@ Deno.test({
         }
       };
     });
+    type Product = ExtractClass<typeof Product>;
 
     const Orderline = defclass(() => {
       return class Orderline {
-        product!: ExtractClass<typeof Product>;
+        product!: Product;
         quantity = 0;
-        initialize(product: ExtractClass<typeof Product>, quantity = 1) {
+        initialize(product: Product, quantity = 1) {
           this.product = product;
           this.quantity = quantity;
         }
@@ -119,6 +121,7 @@ Deno.test({
       };
     });
 
+    // Extensions module
     const XProduct = extend(Product, (Product) => {
       return class XProduct extends Product {
         extraPrice = 0;
@@ -136,11 +139,17 @@ Deno.test({
       return class XOrderline extends Orderline {
         initialize(product: XProduct, quantity: number) {
           super.initialize(product, quantity);
+          // NOTE: We are casting the product field to be XProduct
+          // because we are aware of the extension in this module.
+          // We know exactly that the type of Orderline.product is
+          // extended so this is legal. In fact, this is the way to
+          // really allow typed extensions.
           (this.product as XProduct).setExtraPrice(0.5);
         }
       };
     });
 
+    // Program
     function app() {
       const p1 = Product.instantiate('water', 1);
       const p2 = Product.instantiate('burger', 2);

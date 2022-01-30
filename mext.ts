@@ -1,52 +1,47 @@
 // deno-lint-ignore-file no-explicit-any
-type Constructor<T> = new (...args: any[]) => T;
-type Initialized<T> = { initialize(...args: any[]): T };
-type BaseDefinition<B extends Initialized<any>> = {
-  getCompiled(): Constructor<B>;
-  instantiate(...args: Parameters<B['initialize']>): B;
+type Constructor<T> = new (...args: unknown[]) => T;
+type Initialized = { initialize(...args: unknown[]): void };
+type ExtensionDefinition<Base extends Initialized, Extension extends Base> = {
+  getCompiled(): Constructor<Extension>;
+  instantiate(...args: Parameters<Extension['initialize']>): Extension;
   isInstance(obj: unknown): boolean;
-  getBase(): Callback<B>;
+  getBase(): BaseCallback<Base>;
 };
-
-type ExtensionDefinition<
-  B extends Initialized<any>,
-  T extends Initialized<any>
-> = {
-  getCompiled(): Constructor<T>;
-  instantiate(...args: Parameters<T['initialize']>): T;
-  isInstance(obj: unknown): boolean;
-  getBase(): Callback<B>;
-};
-
-type Callback<T> = () => Constructor<T>;
+type BaseDefinition<Base extends Initialized> = ExtensionDefinition<Base, Base>;
+type BaseCallback<T> = () => Constructor<T>;
 type ExtensionCallback<B, T> = (base: Constructor<B>) => Constructor<T>;
 
 const extensions: Map<
-  Callback<any>,
-  Array<ExtensionCallback<any, any>>
+  BaseCallback<any>,
+  ExtensionCallback<any, any>[]
 > = new Map();
 
-export function defclass<B extends Initialized<any>>(
-  callback: () => Constructor<B>
-): BaseDefinition<B> {
-  let compiled: Constructor<B> | undefined;
-  const extensionCBs: Array<ExtensionCallback<any, B>> = [];
+/**
+ * Defines a lazy class.
+ * @param callback - use to lazily define the class
+ * @returns a definition used to interface with the lazy class
+ */
+function defclass<Base extends Initialized>(
+  callback: BaseCallback<Base>
+): BaseDefinition<Base> {
+  let compiled: Constructor<Base> | undefined;
+  const extensionCBs: ExtensionCallback<Base, Base>[] = [];
   extensions.set(callback, extensionCBs);
   return {
-    getCompiled(): Constructor<B> {
+    getCompiled(): Constructor<Base> {
       if (compiled) {
         return compiled;
       }
       compiled = extensionCBs.reduce((acc, cb) => cb(acc), callback());
       return compiled;
     },
-    instantiate(...args: Parameters<B['initialize']>): B {
+    instantiate(...args: Parameters<Base['initialize']>): Base {
       const Class = this.getCompiled();
       const newInstance = new Class();
       newInstance.initialize(...args);
       return newInstance;
     },
-    isInstance(obj: B) {
+    isInstance(obj: Base) {
       const result = obj instanceof this.getCompiled();
       return result;
     },
@@ -56,28 +51,30 @@ export function defclass<B extends Initialized<any>>(
   };
 }
 
-export function extend<
-  B extends Initialized<any> = any,
-  T extends Initialized<any> = any
->(def: BaseDefinition<B>, extension: Mixin<B, T>): ExtensionDefinition<B, T> {
+/**
+ * Extends a lazy class definition using an extension callback.
+ * @param def - from the result of `defclass`
+ * @param extension - a callback to apply to the lazy class.
+ * @returns the given definition but typed to have the extension.
+ */
+function extend<Base extends Initialized = any, Extension extends Base = any>(
+  def: BaseDefinition<Base>,
+  extension: ExtensionCallback<Base, Extension>
+): ExtensionDefinition<Base, Extension> {
   const base = def.getBase();
-  const extensionCBs = extensions.get(base);
+  const extensionCBs: ExtensionCallback<Base, Extension>[] | undefined =
+    extensions.get(base);
   if (!extensionCBs) {
     throw new Error(
-      'Base definition not found. Use `defclass` for initial definition.'
+      'Base definition not found. Use `defclass` to create a definition.'
     );
   }
   extensionCBs.push(extension);
-  return def as unknown as ExtensionDefinition<B, T>;
+  return def as ExtensionDefinition<Base, Extension>;
 }
 
-type Mixin<B, X> = (base: Constructor<B>) => Constructor<X>;
-type Compiled<T extends ExtensionDefinition<any, any>> = ReturnType<
-  T['getCompiled']
->;
-
 /**
- * Use this to extract the compiled class from the definition.
+ * Use this generic type to extract the compiled class from a definition.
  * Sample:
  * ```js
  * const NewClass = defclass(() => class NewClass {});
@@ -86,11 +83,9 @@ type Compiled<T extends ExtensionDefinition<any, any>> = ReturnType<
  * const newInstance: NewClass = NewClass.instantiate();
  * ```
  */
-export type ExtractClass<T extends any> = T extends ExtensionDefinition<
-  any,
-  any
->
-  ? InstanceType<Compiled<T>>
-  : T extends BaseDefinition<any>
+type ExtractClass<T extends any> = T extends ExtensionDefinition<any, any>
   ? InstanceType<ReturnType<T['getCompiled']>>
   : never;
+
+export { defclass, extend };
+export type { ExtractClass };
