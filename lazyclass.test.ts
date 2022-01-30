@@ -1,5 +1,5 @@
 import { assertEquals } from 'https://deno.land/std@0.122.0/testing/asserts.ts';
-import { defclass, extend, ExtractClass } from './mext.ts';
+import { defclass, extend, ExtractClass } from './lazyclass.ts';
 
 Deno.test({
   name: 'simple class',
