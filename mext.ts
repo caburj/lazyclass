@@ -1,82 +1,65 @@
-export abstract class InitializedBase {
-  constructor(...args: unknown[]) {
-    this.initialize(...args);
-  }
-  initialize(..._args: unknown[]) {}
-}
-
-type Definition<T extends InitializedBase> = {
-  getCompiled(): GenericConstructor<T>;
-  instantiate(...args: Parameters<T['initialize']>): T;
-  getBase(): () => GenericConstructor<T>;
-  isInstance(obj: any): boolean;
+// deno-lint-ignore-file no-explicit-any
+type Constructor<T> = new (...args: any[]) => T;
+type Initialized<T> = { initialize(...args: any[]): T };
+type BaseDefinition<B extends Initialized<any>> = {
+  getCompiled(): Constructor<B>;
+  instantiate(...args: Parameters<B['initialize']>): B;
+  isInstance(obj: unknown): boolean;
+  getBase(): Callback<B>;
 };
 
-export type ExtensionSpec<
-  BaseInterface extends InitializedBase = any,
-  Extension extends Record<never, never> = any
+type ExtensionDefinition<
+  B extends Initialized<any>,
+  T extends Initialized<any>
 > = {
-  BaseInterface: BaseInterface;
-  Extension: Extension;
+  getCompiled(): Constructor<T>;
+  instantiate(...args: Parameters<T['initialize']>): T;
+  isInstance(obj: unknown): boolean;
+  getBase(): Callback<B>;
 };
 
-export type ExtendedInterface<Spec extends ExtensionSpec> =
-  Spec['BaseInterface'] & Spec['Extension'];
-
-type InterfaceConstructor<I extends InitializedBase> = GenericConstructor<I>;
-
-type ExtendedInterfaceConstructor<Spec extends ExtensionSpec> =
-  GenericConstructor<Spec['BaseInterface'] & Spec['Extension']>;
-
-type GenericConstructor<T> = new (...args: unknown[]) => T;
-type Constructor = new (...args: unknown[]) => any;
+type Callback<T> = () => Constructor<T>;
+type ExtensionCallback<B, T> = (base: Constructor<B>) => Constructor<T>;
 
 const extensions: Map<
-  () => Constructor,
-  Array<(base: Constructor) => Constructor>
+  Callback<any>,
+  Array<ExtensionCallback<any, any>>
 > = new Map();
 
-// How about an oversion that allows normal class as base?
-// But this will make the code more complicated and will
-// introduce more ways on declaring a class. This module is
-// already opinionated, let's stay opinionated and only allow
-// one way of declaring a class definition.
-export function defclass<I extends InitializedBase>(
-  callback: () => InterfaceConstructor<I>
-): Definition<I> {
-  let compiled: GenericConstructor<I> | undefined;
-  const extensionCBs: Array<(base: Constructor) => Constructor> = [];
+export function defclass<B extends Initialized<any>>(
+  callback: () => Constructor<B>
+): BaseDefinition<B> {
+  let compiled: Constructor<B> | undefined;
+  const extensionCBs: Array<ExtensionCallback<any, B>> = [];
   extensions.set(callback, extensionCBs);
   return {
-    getCompiled(): GenericConstructor<I> {
+    getCompiled(): Constructor<B> {
       if (compiled) {
         return compiled;
       }
       compiled = extensionCBs.reduce((acc, cb) => cb(acc), callback());
       return compiled;
     },
-    instantiate(...args: Parameters<I['initialize']>): I {
+    instantiate(...args: Parameters<B['initialize']>): B {
       const Class = this.getCompiled();
       const newInstance = new Class();
       newInstance.initialize(...args);
       return newInstance;
     },
-    getBase() {
-      return callback;
-    },
-    isInstance(obj: I) {
+    isInstance(obj: B) {
       const result = obj instanceof this.getCompiled();
       return result;
+    },
+    getBase() {
+      return callback;
     },
   };
 }
 
-export function extend<Spec extends ExtensionSpec>(
-  def: Definition<Spec['BaseInterface']>,
-  extensionCB: (
-    base: GenericConstructor<Spec['BaseInterface']>
-  ) => ExtendedInterfaceConstructor<Spec>
-): Definition<ExtendedInterface<Spec>> {
+export function extend<
+  B extends Initialized<any> = any,
+  T extends Initialized<any> = any
+>(def: BaseDefinition<B>, extension: Mixin<B, T>): ExtensionDefinition<B, T> {
   const base = def.getBase();
   const extensionCBs = extensions.get(base);
   if (!extensionCBs) {
@@ -84,6 +67,20 @@ export function extend<Spec extends ExtensionSpec>(
       'Base definition not found. Use `defclass` for initial definition.'
     );
   }
-  extensionCBs.push(extensionCB);
-  return def;
+  extensionCBs.push(extension);
+  return def as unknown as ExtensionDefinition<B, T>;
 }
+
+type Mixin<B, X> = (base: Constructor<B>) => Constructor<X>;
+type Compiled<T extends ExtensionDefinition<any, any>> = ReturnType<
+  T['getCompiled']
+>;
+
+export type CompiledType<T extends any> = T extends ExtensionDefinition<
+  any,
+  any
+>
+  ? InstanceType<Compiled<T>>
+  : T extends BaseDefinition<any>
+  ? InstanceType<ReturnType<T['getCompiled']>>
+  : never;
