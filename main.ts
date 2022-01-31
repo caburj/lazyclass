@@ -1,4 +1,4 @@
-import { lazyclass, extend } from './lazyclass.ts';
+import { lazyclass } from './lazyclass.ts';
 
 const LazyMain = lazyclass(() => {
   class Main {
@@ -14,7 +14,7 @@ const LazyMain = lazyclass(() => {
   return Main;
 });
 
-extend(LazyMain, (Main) => {
+LazyMain.extend((Main) => {
   return class MainExt extends Main {
     run() {
       super.run();

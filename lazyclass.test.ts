@@ -1,5 +1,5 @@
 import { assertEquals } from 'https://deno.land/std@0.122.0/testing/asserts.ts';
-import { lazyclass, extend, ExtractClass } from './lazyclass.ts';
+import { lazyclass, ExtractClass } from './lazyclass.ts';
 
 Deno.test({
   name: 'simple class',
@@ -43,7 +43,7 @@ Deno.test({
       return Main;
     });
 
-    const ExtMain = extend(LazyMain, (Main) => {
+    const ExtMain = LazyMain.extend((Main) => {
       class ExtMain extends Main {
         double() {
           this.num *= 2;
@@ -122,7 +122,7 @@ Deno.test({
     });
 
     // Extensions module
-    const LazyXProduct = extend(LazyProduct, (Product) => {
+    const LazyXProduct = LazyProduct.extend((Product) => {
       return class XProduct extends Product {
         extraPrice = 0;
         setExtraPrice(val: number) {
@@ -135,7 +135,7 @@ Deno.test({
     });
     type XProduct = ExtractClass<typeof LazyXProduct>;
 
-    extend(LazyOrderline, (Orderline) => {
+    LazyOrderline.extend((Orderline) => {
       return class XOrderline extends Orderline {
         initialize(product: XProduct, quantity: number) {
           super.initialize(product, quantity);
