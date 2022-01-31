@@ -72,5 +72,5 @@ type ExtractClass<T extends any> = T extends Definition<any>
   ? InstanceType<ReturnType<T['getCompiled']>>
   : never;
 
-export { lazyclass };
+export default lazyclass;
 export type { ExtractClass };

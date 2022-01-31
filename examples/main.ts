@@ -1,4 +1,4 @@
-import { lazyclass } from '../lazyclass.ts';
+import lazyclass from '../lazyclass.ts';
 
 const LazyMain = lazyclass(() => {
   class Main {
