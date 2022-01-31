@@ -1,17 +1,16 @@
 // deno-lint-ignore-file no-explicit-any
-type Constructor<T> = new (...args: unknown[]) => T;
-type Initialized = { initialize(...args: unknown[]): void };
-type Definition<Base extends Initialized> = {
-  getCompiled(): Constructor<Base>;
-  instantiate(...args: Parameters<Base['initialize']>): Base;
+type BasicConstructor = new (...args: any[]) => any;
+
+type Definition<T extends BasicConstructor> = {
+  getCompiled(): T;
+  instantiate(...args: ConstructorParameters<T>): InstanceType<T>;
   isInstance(obj: unknown): boolean;
-  getBase(): BaseCallback<Base>;
-  extend<Extension extends Base>(
-    extensionCB: ExtensionCallback<Base, Extension>
+  extend<Extension extends T>(
+    extensionCB: ExtensionCallback<T, Extension>
   ): Definition<Extension>;
 };
-type BaseCallback<T> = () => Constructor<T>;
-type ExtensionCallback<B, T> = (base: Constructor<B>) => Constructor<T>;
+type BaseCallback<T> = () => T;
+type ExtensionCallback<B, T> = (base: B) => T;
 
 const extensions: Map<
   BaseCallback<any>,
@@ -24,46 +23,39 @@ const extensions: Map<
  * @param callback - use to lazily define the class
  * @returns a definition used to interface with the lazy class
  */
-function lazyclass<Base extends Initialized>(
-  callback: BaseCallback<Base>
-): Definition<Base> {
-  let compiled: Constructor<Base> | undefined;
-  const extensionCBs: ExtensionCallback<Base, Base>[] = [];
+function lazyclass<B extends BasicConstructor>(
+  callback: BaseCallback<B>
+): Definition<B> {
+  let compiled: B | undefined;
+  const extensionCBs: ExtensionCallback<B, any>[] = [];
   extensions.set(callback, extensionCBs);
   return {
-    getCompiled(): Constructor<Base> {
+    getCompiled(): B {
       if (compiled) {
         return compiled;
       }
       compiled = extensionCBs.reduce((acc, cb) => cb(acc), callback());
       return compiled;
     },
-    instantiate(...args: Parameters<Base['initialize']>): Base {
+    instantiate(...args: ConstructorParameters<B>): InstanceType<B> {
       const Class = this.getCompiled();
-      const newInstance = new Class();
-      newInstance.initialize(...args);
+      const newInstance = new Class(...args);
       return newInstance;
     },
-    isInstance(obj: unknown) {
+    isInstance<T>(obj: T) {
       const result = obj instanceof this.getCompiled();
       return result;
     },
-    getBase() {
-      return callback;
-    },
-    extend<Extension extends Base>(
-      extension: ExtensionCallback<Base, Extension>
-    ): Definition<Extension> {
-      const base = this.getBase();
-      const extensionCBs: ExtensionCallback<Base, Extension>[] | undefined =
-        extensions.get(base);
+    extend<E extends B>(extension: ExtensionCallback<B, E>): Definition<E> {
+      const extensionCBs: ExtensionCallback<B, E>[] | undefined =
+        extensions.get(callback);
       if (!extensionCBs) {
         throw new Error(
-          'Base definition not found. Use `defclass` to create a definition.'
+          'Base definition not found. Use `lazyclass` to create a definition.'
         );
       }
       extensionCBs.push(extension);
-      return this as Definition<Extension>;
+      return this as Definition<E>;
     },
   };
 }
@@ -76,7 +68,7 @@ function lazyclass<Base extends Initialized>(
  *
  * Example:
  * ```js
- * const NewClass = defclass(() => class NewClass {});
+ * const NewClass = lazyclass(() => class NewClass {});
  * type NewClass = ExtractClass<typeof NewClass>;
  * // You can now use the above type to type an instance like so:
  * const newInstance: NewClass = NewClass.instantiate();

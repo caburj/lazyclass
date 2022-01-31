@@ -7,7 +7,7 @@ Deno.test({
     let x = 0;
     const LazyMain = lazyclass(() => {
       return class Main {
-        initialize(num: number) {
+        constructor(num: number) {
           x += num;
         }
         plusTwo() {
@@ -28,7 +28,7 @@ Deno.test({
     const LazyMain = lazyclass(() => {
       class Main {
         num = 0;
-        initialize(start: number) {
+        constructor(start: number) {
           this.num = start;
         }
         increment(by: number) {
@@ -96,7 +96,7 @@ Deno.test({
       return class Product {
         name = '';
         unitPrice = 0;
-        initialize(name: string, unitPrice: number) {
+        constructor(name: string, unitPrice: number) {
           this.name = name;
           this.unitPrice = unitPrice;
         }
@@ -111,7 +111,7 @@ Deno.test({
       return class Orderline {
         product!: Product;
         quantity = 0;
-        initialize(product: Product, quantity = 1) {
+        constructor(product: Product, quantity = 1) {
           this.product = product;
           this.quantity = quantity;
         }
@@ -137,8 +137,8 @@ Deno.test({
 
     LazyOrderline.extend((Orderline) => {
       return class XOrderline extends Orderline {
-        initialize(product: XProduct, quantity: number) {
-          super.initialize(product, quantity);
+        constructor(product: XProduct, quantity: number) {
+          super(product, quantity);
           // NOTE: We are casting the product field to be XProduct
           // because we are aware of the extension in this module.
           // We know exactly that the type of Orderline.product is

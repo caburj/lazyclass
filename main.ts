@@ -3,7 +3,7 @@ import { lazyclass } from './lazyclass.ts';
 const LazyMain = lazyclass(() => {
   class Main {
     message = '';
-    initialize(message: string) {
+    constructor(message: string) {
       this.message = message;
     }
     run() {
