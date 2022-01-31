@@ -82,7 +82,7 @@ Deno.test({
     assertEquals(notMain.num, 1);
     notMain.double();
     assertEquals(notMain.num, 4);
-    assertEquals(NotReallyMain.isInstance(notMain), true);
+    assertEquals(NotReallyMain.hasInstance(notMain), true);
     notMain.foo();
     assertEquals(notMain.num, 104);
   },

@@ -4,7 +4,7 @@ type BasicConstructor = new (...args: any[]) => any;
 type Definition<T extends BasicConstructor> = {
   getCompiled(): T;
   instantiate(...args: ConstructorParameters<T>): InstanceType<T>;
-  isInstance<X>(obj: X): boolean;
+  hasInstance<X>(obj: X): boolean;
   extend<E extends T>(
     extensionCB: ExtensionCallback<T, E>
   ): Definition<E>;
@@ -42,7 +42,7 @@ function lazyclass<B extends BasicConstructor>(
       const newInstance = new Class(...args);
       return newInstance;
     },
-    isInstance<T>(obj: T) {
+    hasInstance<T>(obj: T) {
       return obj instanceof this.getCompiled();
     },
     extend<E extends B>(extension: ExtensionCallback<B, E>): Definition<E> {

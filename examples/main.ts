@@ -25,7 +25,7 @@ LazyMain.extend((Main) => {
 
 window.onload = () => {
   const main = LazyMain.instantiate('Hello World!');
-  if (LazyMain.isInstance(main)) {
+  if (LazyMain.hasInstance(main)) {
     console.log('yeah, correct instance');
   }
   main.run();
