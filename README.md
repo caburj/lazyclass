@@ -21,6 +21,8 @@ export const LazyProduct = lazyclass(() => {
         }
     }
 });
+
+// Unwrap the lazy class to get the type of its instances.
 export type Product = ExtractClass<typeof LazyProduct>;
 
 export const LazyOrderItem = lazyclass(() => {
