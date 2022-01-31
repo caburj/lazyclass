@@ -1,11 +1,11 @@
 import { assertEquals } from 'https://deno.land/std@0.122.0/testing/asserts.ts';
-import { defclass, extend, ExtractClass } from './lazyclass.ts';
+import { lazyclass, extend, ExtractClass } from './lazyclass.ts';
 
 Deno.test({
   name: 'simple class',
   fn() {
     let x = 0;
-    const Main = defclass(() => {
+    const LazyMain = lazyclass(() => {
       return class Main {
         initialize(num: number) {
           x += num;
@@ -15,7 +15,7 @@ Deno.test({
         }
       };
     });
-    const main = Main.instantiate(1);
+    const main = LazyMain.instantiate(1);
     assertEquals(x, 1);
     main.plusTwo();
     assertEquals(x, 3);
@@ -25,7 +25,7 @@ Deno.test({
 Deno.test({
   name: 'extend method',
   fn() {
-    const Main = defclass(() => {
+    const LazyMain = lazyclass(() => {
       class Main {
         num = 0;
         initialize(start: number) {
@@ -43,7 +43,7 @@ Deno.test({
       return Main;
     });
 
-    const ExtMain = extend(Main, (Main) => {
+    const ExtMain = extend(LazyMain, (Main) => {
       class ExtMain extends Main {
         double() {
           this.num *= 2;
@@ -58,7 +58,7 @@ Deno.test({
       return ExtMain;
     });
 
-    const NotReallyMain = defclass(() => {
+    const NotReallyMain = lazyclass(() => {
       return class NotReallyMain extends ExtMain.getCompiled() {
         double() {
           super.double();
@@ -72,7 +72,7 @@ Deno.test({
       };
     });
 
-    const main = Main.instantiate(0);
+    const main = LazyMain.instantiate(0);
     assertEquals(main.num, 0);
     main.increment(1);
     assertEquals(main.num, 2);
@@ -92,7 +92,7 @@ Deno.test({
   name: 'return other extended type',
   fn() {
     // Base definitions module
-    const Product = defclass(() => {
+    const LazyProduct = lazyclass(() => {
       return class Product {
         name = '';
         unitPrice = 0;
@@ -105,9 +105,9 @@ Deno.test({
         }
       };
     });
-    type Product = ExtractClass<typeof Product>;
+    type Product = ExtractClass<typeof LazyProduct>;
 
-    const Orderline = defclass(() => {
+    const LazyOrderline = lazyclass(() => {
       return class Orderline {
         product!: Product;
         quantity = 0;
@@ -122,7 +122,7 @@ Deno.test({
     });
 
     // Extensions module
-    const XProduct = extend(Product, (Product) => {
+    const LazyXProduct = extend(LazyProduct, (Product) => {
       return class XProduct extends Product {
         extraPrice = 0;
         setExtraPrice(val: number) {
@@ -133,9 +133,9 @@ Deno.test({
         }
       };
     });
-    type XProduct = ExtractClass<typeof XProduct>;
+    type XProduct = ExtractClass<typeof LazyXProduct>;
 
-    extend(Orderline, (Orderline) => {
+    extend(LazyOrderline, (Orderline) => {
       return class XOrderline extends Orderline {
         initialize(product: XProduct, quantity: number) {
           super.initialize(product, quantity);
@@ -151,10 +151,10 @@ Deno.test({
 
     // Program
     function app() {
-      const p1 = Product.instantiate('water', 1);
-      const p2 = Product.instantiate('burger', 2);
-      const l1 = Orderline.instantiate(p1, 1);
-      const l2 = Orderline.instantiate(p2, 2);
+      const p1 = LazyProduct.instantiate('water', 1);
+      const p2 = LazyProduct.instantiate('burger', 2);
+      const l1 = LazyOrderline.instantiate(p1, 1);
+      const l2 = LazyOrderline.instantiate(p2, 2);
 
       assertEquals(l1.getPrice(), 1.5);
       assertEquals(l2.getPrice(), 5);

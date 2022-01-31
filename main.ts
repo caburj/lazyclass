@@ -1,6 +1,6 @@
-import { defclass, extend } from './lazyclass.ts';
+import { lazyclass, extend } from './lazyclass.ts';
 
-const Main = defclass(() => {
+const LazyMain = lazyclass(() => {
   class Main {
     message = '';
     initialize(message: string) {
@@ -14,7 +14,7 @@ const Main = defclass(() => {
   return Main;
 });
 
-extend(Main, (Main) => {
+extend(LazyMain, (Main) => {
   return class MainExt extends Main {
     run() {
       super.run();
@@ -24,8 +24,8 @@ extend(Main, (Main) => {
 });
 
 window.onload = () => {
-  const main = Main.instantiate('Hello World!');
-  if (Main.isInstance(main)) {
+  const main = LazyMain.instantiate('Hello World!');
+  if (LazyMain.isInstance(main)) {
     console.log('yeah, correct instance');
   }
   main.run();

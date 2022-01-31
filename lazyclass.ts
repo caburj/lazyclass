@@ -22,7 +22,7 @@ const extensions: Map<
  * @param callback - use to lazily define the class
  * @returns a definition used to interface with the lazy class
  */
-function defclass<Base extends Initialized>(
+function lazyclass<Base extends Initialized>(
   callback: BaseCallback<Base>
 ): BaseDefinition<Base> {
   let compiled: Constructor<Base> | undefined;
@@ -95,5 +95,5 @@ type ExtractClass<T extends any> = T extends ExtensionDefinition<any, any>
   ? InstanceType<ReturnType<T['getCompiled']>>
   : never;
 
-export { defclass, extend };
+export { lazyclass, extend };
 export type { ExtractClass };
