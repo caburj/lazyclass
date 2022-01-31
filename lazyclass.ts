@@ -4,10 +4,10 @@ type BasicConstructor = new (...args: any[]) => any;
 type Definition<T extends BasicConstructor> = {
   getCompiled(): T;
   instantiate(...args: ConstructorParameters<T>): InstanceType<T>;
-  isInstance(obj: unknown): boolean;
-  extend<Extension extends T>(
-    extensionCB: ExtensionCallback<T, Extension>
-  ): Definition<Extension>;
+  isInstance<X>(obj: X): boolean;
+  extend<E extends T>(
+    extensionCB: ExtensionCallback<T, E>
+  ): Definition<E>;
 };
 type BaseCallback<T> = () => T;
 type ExtensionCallback<B, T> = (base: B) => T;
@@ -43,17 +43,9 @@ function lazyclass<B extends BasicConstructor>(
       return newInstance;
     },
     isInstance<T>(obj: T) {
-      const result = obj instanceof this.getCompiled();
-      return result;
+      return obj instanceof this.getCompiled();
     },
     extend<E extends B>(extension: ExtensionCallback<B, E>): Definition<E> {
-      const extensionCBs: ExtensionCallback<B, E>[] | undefined =
-        extensions.get(callback);
-      if (!extensionCBs) {
-        throw new Error(
-          'Base definition not found. Use `lazyclass` to create a definition.'
-        );
-      }
       extensionCBs.push(extension);
       return this as Definition<E>;
     },
