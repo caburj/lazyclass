@@ -5,12 +5,28 @@ type Definition<T extends BasicConstructor> = {
   getCompiled(): T;
   instantiate(...args: ConstructorParameters<T>): InstanceType<T>;
   hasInstance<X>(obj: X): boolean;
-  extend<E extends T>(
-    extensionCB: ExtensionCallback<T, E>
-  ): Definition<E>;
+  getBase(): BaseCallback<T>;
+  extend<E extends T>(extensionCB: ExtensionCallback<T, E>): Definition<E>;
+  extendWith<X extends BasicConstructor, E extends T>(
+    otherDef: Definition<X>,
+    extensionCB: ExtensionCallback<Mixed<T, X>, E>
+  ): Definition<Mixed<Mixed<T, X>, E>>;
 };
 type BaseCallback<T> = () => T;
-type ExtensionCallback<B, T> = (base: B) => T;
+
+type ExtensionCallback<
+  B extends BasicConstructor,
+  E extends BasicConstructor
+> = (base: B) => {
+  // It's important to have this args as any[]. Using ConstructorParameters<B> won't work.
+  // The return type won't be the intersection. I don't know why.
+  new (...args: any[]): InstanceType<B>;
+  prototype: InstanceType<B>;
+} & E;
+
+type Mixed<B extends BasicConstructor, E extends BasicConstructor> = ReturnType<
+  ExtensionCallback<B, E>
+>;
 
 const extensions: Map<
   BaseCallback<any>,
@@ -45,9 +61,24 @@ function lazyclass<B extends BasicConstructor>(
     hasInstance<T>(obj: T) {
       return obj instanceof this.getCompiled();
     },
+    getBase() {
+      return callback;
+    },
     extend<E extends B>(extension: ExtensionCallback<B, E>): Definition<E> {
       extensionCBs.push(extension);
       return this as Definition<E>;
+    },
+    extendWith<O extends BasicConstructor, E extends B>(
+      otherDef: Definition<O>,
+      extensionCB: ExtensionCallback<Mixed<B, O>, E>
+    ): Definition<Mixed<Mixed<B, O>, E>> {
+      if (this.getBase() !== (otherDef.getBase() as any)) {
+        throw new Error(
+          'Base should be the same when extending with other definitions.'
+        );
+      }
+      extensionCBs.push(extensionCB as any);
+      return this as Definition<Mixed<Mixed<B, O>, E>>;
     },
   };
 }

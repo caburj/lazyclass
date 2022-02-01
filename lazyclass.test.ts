@@ -163,3 +163,68 @@ Deno.test({
     app();
   },
 });
+
+Deno.test({
+  name: 'multiple bases',
+  fn: () => {
+    let x = 1;
+
+    const LazyFoo = lazyclass(
+      () =>
+        class Foo {
+          constructor(public value: number) {}
+          foo() {
+            x += this.value;
+          }
+        }
+    );
+
+    const LazyFooE1 = LazyFoo.extend(
+      (Foo) =>
+        class FooE1 extends Foo {
+          foo1() {
+            x += this.value + 1;
+          }
+        }
+    );
+
+    const LazyFooE2 = LazyFoo.extend(
+      (Foo) =>
+        class FooE2 extends Foo {
+          foo2() {
+            x += this.value + 2;
+          }
+        }
+    );
+
+    const LazyFooE3 = LazyFooE1.extendWith(LazyFooE2, (Foo) => {
+      return class FooE3 extends Foo {
+        foo3() {
+          x += this.value + 3;
+        }
+      };
+    });
+
+    LazyFoo.instantiate(1).foo();
+    assertEquals(x, 2);
+
+    LazyFooE1.instantiate(1).foo();
+    assertEquals(x, 3);
+    LazyFooE1.instantiate(2).foo1();
+    assertEquals(x, 6);
+
+    LazyFooE2.instantiate(3).foo();
+    assertEquals(x, 9);
+    LazyFooE2.instantiate(4).foo2();
+    assertEquals(x, 15);
+
+    LazyFooE3.instantiate(5).foo();
+    assertEquals(x, 20);
+    LazyFooE3.instantiate(6).foo1();
+    assertEquals(x, 27);
+    LazyFooE3.instantiate(7).foo2();
+    assertEquals(x, 36);
+    LazyFooE3.instantiate(8).foo3();
+    assertEquals(x, 47);
+  },
+});
