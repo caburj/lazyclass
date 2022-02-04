@@ -1,59 +1,45 @@
 // deno-lint-ignore-file no-explicit-any
-type BasicConstructor = new (...args: any[]) => any;
+type Constructor = new (...args: any[]) => any;
 
-type Definition<T extends BasicConstructor> = {
-  getCompiled(): T;
-  instantiate(...args: ConstructorParameters<T>): InstanceType<T>;
-  hasInstance<X>(obj: X): boolean;
-  getBase(): BaseCallback<T>;
-  extend<E extends T>(extensionCB: ExtensionCallback<T, E>): Definition<E>;
-  extendWith<X extends BasicConstructor, E extends T>(
-    otherDef: Definition<X>,
-    extensionCB: ExtensionCallback<Mixed<T, X>, E>
-  ): Definition<Mixed<Mixed<T, X>, E>>;
-};
-type BaseCallback<T> = () => T;
-
-type ExtensionCallback<
-  B extends BasicConstructor,
-  E extends BasicConstructor
-> = (base: B) => {
+type ReConstructor<B extends Constructor> = {
   // It's important to have this args as any[]. Using ConstructorParameters<B> won't work.
   // The return type won't be the intersection. I don't know why.
   new (...args: any[]): InstanceType<B>;
   prototype: InstanceType<B>;
-} & E;
+};
 
-type Mixed<B extends BasicConstructor, E extends BasicConstructor> = ReturnType<
-  ExtensionCallback<B, E>
->;
+type Base<T> = () => T;
 
-const extensions: Map<
-  BaseCallback<any>,
-  ExtensionCallback<any, any>[]
-> = new Map();
+type Mixin<B extends Constructor, E extends Constructor> = (base: B) => ReConstructor<B> & E;
 
-/**
- * Defines a lazy class.
- *
- * @param callback - use to lazily define the class
- * @returns a definition used to interface with the lazy class
- */
-function lazyclass<B extends BasicConstructor>(
-  callback: BaseCallback<B>
-): Definition<B> {
+type Mixed<B extends Constructor, E extends Constructor> = ReturnType<Mixin<B, E>>;
+
+type ExtensionDefinition<B extends Constructor, E extends Constructor> = {
+  getCompiled(): E;
+  instantiate(...args: ConstructorParameters<E>): InstanceType<E>;
+  hasInstance<T>(obj: T): boolean;
+  getBase(): Base<B>;
+  extend<X extends Constructor>(mixin: Mixin<E, X>): ExtensionDefinition<B, Mixed<E, X>>;
+  mix<X extends B>(def: ExtensionDefinition<B, X>): ExtensionDefinition<B, Mixed<E, X>>;
+};
+
+type BaseDefinition<B extends Constructor> = ExtensionDefinition<B, B>;
+
+const extensions: Map<Base<any>, Mixin<any, any>[]> = new Map();
+
+export default function lazyclass<B extends Constructor>(base: Base<B>): BaseDefinition<B> {
   let compiled: B | undefined;
-  const extensionCBs: ExtensionCallback<B, any>[] = [];
-  extensions.set(callback, extensionCBs);
+  const extensionCBs: Mixin<B, any>[] = [];
+  extensions.set(base, extensionCBs);
   return {
-    getCompiled(): B {
+    getCompiled() {
       if (compiled) {
         return compiled;
       }
-      compiled = extensionCBs.reduce((acc, cb) => cb(acc), callback());
+      compiled = extensionCBs.reduce((acc, cb) => cb(acc), base());
       return compiled;
     },
-    instantiate(...args: ConstructorParameters<B>): InstanceType<B> {
+    instantiate(...args) {
       const Class = this.getCompiled();
       const newInstance = new Class(...args);
       return newInstance;
@@ -62,23 +48,18 @@ function lazyclass<B extends BasicConstructor>(
       return obj instanceof this.getCompiled();
     },
     getBase() {
-      return callback;
+      return base;
     },
-    extend<E extends B>(extension: ExtensionCallback<B, E>): Definition<E> {
+    extend<E extends Constructor>(extension: Mixin<B, E>): ExtensionDefinition<B, E> {
       extensionCBs.push(extension);
-      return this as Definition<E>;
+      // TODO: Can we do better than this?
+      return this as unknown as ExtensionDefinition<B, E>;
     },
-    extendWith<O extends BasicConstructor, E extends B>(
-      otherDef: Definition<O>,
-      extensionCB: ExtensionCallback<Mixed<B, O>, E>
-    ): Definition<Mixed<Mixed<B, O>, E>> {
-      if (this.getBase() !== (otherDef.getBase() as any)) {
-        throw new Error(
-          'Base should be the same when extending with other definitions.'
-        );
+    mix<E extends B>(def: ExtensionDefinition<B, E>): ExtensionDefinition<B, E> {
+      if (this.getBase() !== def.getBase()) {
+        throw new Error('Cannot mix, incompatible bases.');
       }
-      extensionCBs.push(extensionCB as any);
-      return this as Definition<Mixed<Mixed<B, O>, E>>;
+      return this as ExtensionDefinition<B, E>;
     },
   };
 }
@@ -91,17 +72,14 @@ function lazyclass<B extends BasicConstructor>(
  *
  * Example:
  * ```js
- * const NewClass = lazyclass(() => class NewClass {});
- * type NewClass = ExtractClass<typeof NewClass>;
+ * const LazyClass = lazyclass(() => class NewClass {});
+ * type NewClass = UnwrapType<typeof LazyClass>;
  * // You can now use the above type to type an instance like so:
- * const newInstance: NewClass = NewClass.instantiate();
+ * const newInstance: NewClass = LazyClass.instantiate();
  * // But there is actually no need for explicit type because
  * // `instantiate` call returns with proper type.
  * ```
  */
-type ExtractClass<T extends any> = T extends Definition<any>
+export type UnwrapType<T extends any> = T extends ExtensionDefinition<any, any>
   ? InstanceType<ReturnType<T['getCompiled']>>
   : never;
-
-export default lazyclass;
-export type { ExtractClass };

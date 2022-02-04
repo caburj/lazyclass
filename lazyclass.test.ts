@@ -1,9 +1,9 @@
 import { assertEquals } from 'https://deno.land/std@0.122.0/testing/asserts.ts';
-import lazyclass, { ExtractClass } from './lazyclass.ts';
+import lazyclass, { UnwrapType } from './lazyclass.ts';
 
 Deno.test({
   name: 'simple class',
-  fn() {
+  fn: () => {
     let x = 0;
     const LazyMain = lazyclass(() => {
       return class Main {
@@ -24,7 +24,7 @@ Deno.test({
 
 Deno.test({
   name: 'extend method',
-  fn() {
+  fn: () => {
     const LazyMain = lazyclass(() => {
       class Main {
         num = 0;
@@ -90,7 +90,7 @@ Deno.test({
 
 Deno.test({
   name: 'return other extended type',
-  fn() {
+  fn: () => {
     // Base definitions module
     const LazyProduct = lazyclass(() => {
       return class Product {
@@ -105,7 +105,7 @@ Deno.test({
         }
       };
     });
-    type Product = ExtractClass<typeof LazyProduct>;
+    type Product = UnwrapType<typeof LazyProduct>;
 
     const LazyOrderline = lazyclass(() => {
       return class Orderline {
@@ -133,7 +133,7 @@ Deno.test({
         }
       };
     });
-    type XProduct = ExtractClass<typeof LazyXProduct>;
+    type XProduct = UnwrapType<typeof LazyXProduct>;
 
     LazyOrderline.extend((Orderline) => {
       return class XOrderline extends Orderline {
@@ -165,7 +165,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: 'multiple bases',
+  name: 'extend based on two extensions',
   fn: () => {
     let x = 1;
 
@@ -197,7 +197,7 @@ Deno.test({
         }
     );
 
-    const LazyFooE3 = LazyFooE1.extendWith(LazyFooE2, (Foo) => {
+    const LazyFooE3 = LazyFooE1.mix(LazyFooE2).extend((Foo) => {
       return class FooE3 extends Foo {
         foo3() {
           x += this.value + 3;
@@ -226,5 +226,87 @@ Deno.test({
     assertEquals(x, 36);
     LazyFooE3.instantiate(8).foo3();
     assertEquals(x, 47);
+  },
+});
+
+Deno.test({
+  name: 'extend based on multiple definitions',
+  fn: () => {
+    const LazyCore = lazyclass(
+      () =>
+        class Core {
+          constructor(public value: number) {}
+          foo() {
+            return this.value;
+          }
+        }
+    );
+
+    const LazyCore1 = LazyCore.extend(
+      (Core) =>
+        class Core1 extends Core {
+          foo() {
+            return super.foo() + 1;
+          }
+        }
+    );
+
+    const LazyCore2 = LazyCore.extend(
+      (Core) =>
+        class Core2 extends Core {
+          foo() {
+            return super.foo() * 2;
+          }
+        }
+    );
+
+    const LazyCore3 = LazyCore.extend(
+      (Core) =>
+        class Core3 extends Core {
+          foo() {
+            return super.foo() - 3;
+          }
+        }
+    );
+
+    const LazyCore4 = LazyCore1.mix(LazyCore2).extend(
+      (Core) =>
+        class Core4 extends Core {
+          foo() {
+            return super.foo() + 4;
+          }
+        }
+    );
+
+    const LazyCore5 = LazyCore3.extend(
+      (Core3) =>
+        class Core5 extends Core3 {
+          foo() {
+            return super.foo() * 5;
+          }
+        }
+    );
+
+    const LazyCore6 = LazyCore3.extend(
+      (Core3) =>
+        class Core6 extends Core3 {
+          foo() {
+            return super.foo() - 6;
+          }
+        }
+    );
+
+    const LazyCore7 = LazyCore4.mix(LazyCore5)
+      .mix(LazyCore6)
+      .extend(
+        (Core) =>
+          class Core7 extends Core {
+            foo() {
+              return super.foo() + 7;
+            }
+          }
+      );
+
+    assertEquals(LazyCore7.instantiate(1).foo(), 26);
   },
 });
