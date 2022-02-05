@@ -197,7 +197,7 @@ Deno.test({
         }
     );
 
-    const LazyFooE3 = LazyFooE1.mix(LazyFooE2).extend((Foo) => {
+    const LazyFooE3 = LazyFooE1.with(LazyFooE2).extend((Foo) => {
       return class FooE3 extends Foo {
         foo3() {
           x += this.value + 3;
@@ -269,7 +269,7 @@ Deno.test({
         }
     );
 
-    const LazyCore4 = LazyCore1.mix(LazyCore2).extend(
+    const LazyCore4 = LazyCore1.with(LazyCore2).extend(
       (Core) =>
         class Core4 extends Core {
           foo() {
@@ -296,8 +296,8 @@ Deno.test({
         }
     );
 
-    const LazyCore7 = LazyCore4.mix(LazyCore5)
-      .mix(LazyCore6)
+    const LazyCore7 = LazyCore4.with(LazyCore5)
+      .with(LazyCore6)
       .extend(
         (Core) =>
           class Core7 extends Core {

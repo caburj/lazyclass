@@ -20,7 +20,7 @@ type ExtensionDefinition<B extends Constructor, E extends Constructor> = {
   hasInstance<T>(obj: T): boolean;
   getBase(): Base<B>;
   extend<X extends Constructor>(mixin: Mixin<E, X>): ExtensionDefinition<B, Mixed<E, X>>;
-  mix<X extends B>(def: ExtensionDefinition<B, X>): ExtensionDefinition<B, Mixed<E, X>>;
+  with<X extends B>(def: ExtensionDefinition<B, X>): ExtensionDefinition<B, Mixed<E, X>>;
 };
 
 type BaseDefinition<B extends Constructor> = ExtensionDefinition<B, B>;
@@ -55,7 +55,7 @@ export default function lazyclass<B extends Constructor>(base: Base<B>): BaseDef
       // TODO: Can we do better than this?
       return this as unknown as ExtensionDefinition<B, E>;
     },
-    mix<E extends B>(def: ExtensionDefinition<B, E>): ExtensionDefinition<B, E> {
+    with<E extends B>(def: ExtensionDefinition<B, E>): ExtensionDefinition<B, E> {
       if (this.getBase() !== def.getBase()) {
         throw new Error('Cannot mix, incompatible bases.');
       }
