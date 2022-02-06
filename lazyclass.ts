@@ -1,19 +1,48 @@
 // deno-lint-ignore-file no-explicit-any
-type Constructor = new (...args: any[]) => any;
 
-type ReConstructor<B extends Constructor> = {
-  // It's important to have this args as any[]. Using ConstructorParameters<B> won't work.
-  // The return type won't be the intersection. I don't know why.
-  new (...args: any[]): InstanceType<B>;
-  prototype: InstanceType<B>;
+/**
+ * Export this to allow easy definitions of mixins.
+ *
+ * E.g.
+ * ```
+ * function Mixin<B extends Constructor<{ value: number }>(base: B) {
+ *   return class Mixin extends base {
+ *     mixin() {
+ *       this.value += 100;
+ *     }
+ *   }
+ * }
+ *
+ * class X {
+ *   constructor(public value: number) {}
+ * }
+ *
+ * class Y extends Mixin(X) {
+ *   y() {
+ *     this.mixin();
+ *     return this.value;
+ *   }
+ * }
+ * ```
+ */
+export type Constructor<T = any> = {
+  new (...args: any[]): T;
+  prototype: T;
 };
 
+/**
+ * Provide a constructor to generate a reconstructed version of the constructor.
+ * Important in defining mixins used for in-place inheritance.
+ */
+type ReConstructor<C extends Constructor> = {
+  // It's important to have this args as any[]. Using ConstructorParameters<B> won't work.
+  // The return type won't be the intersection. I don't know why.
+  new (...args: any[]): InstanceType<C>;
+  prototype: InstanceType<C>;
+};
 type Base<T> = () => T;
-
 type Mixin<B extends Constructor, E extends Constructor> = (base: B) => ReConstructor<B> & E;
-
 type Mixed<B extends Constructor, E extends Constructor> = ReturnType<Mixin<B, E>>;
-
 type ExtensionDefinition<B extends Constructor, E extends Constructor> = {
   getCompiled(): E;
   instantiate(...args: ConstructorParameters<E>): InstanceType<E>;
@@ -22,7 +51,6 @@ type ExtensionDefinition<B extends Constructor, E extends Constructor> = {
   extend<X extends Constructor>(mixin: Mixin<E, X>): ExtensionDefinition<B, Mixed<E, X>>;
   with<X extends B>(def: ExtensionDefinition<B, X>): ExtensionDefinition<B, Mixed<E, X>>;
 };
-
 type BaseDefinition<B extends Constructor> = ExtensionDefinition<B, B>;
 
 const extensions: Map<Base<any>, Mixin<any, any>[]> = new Map();
@@ -80,6 +108,8 @@ export default function lazyclass<B extends Constructor>(base: Base<B>): BaseDef
  * // `instantiate` call returns with proper type.
  * ```
  */
-export type UnwrapType<T extends any> = T extends ExtensionDefinition<any, any>
-  ? InstanceType<ReturnType<T['getCompiled']>>
-  : never;
+export type UnwrapType<
+  T extends ExtensionDefinition<B, X>,
+  B extends Constructor = any,
+  X extends Constructor = any
+> = InstanceType<ReturnType<T['getCompiled']>>;

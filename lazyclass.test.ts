@@ -1,5 +1,5 @@
 import { assertEquals } from 'https://deno.land/std@0.122.0/testing/asserts.ts';
-import lazyclass, { UnwrapType } from './lazyclass.ts';
+import lazyclass, { Constructor, UnwrapType } from './lazyclass.ts';
 
 Deno.test({
   name: 'simple class',
@@ -308,5 +308,55 @@ Deno.test({
       );
 
     assertEquals(LazyCore7.instantiate(1).foo(), 26);
+  },
+});
+
+Deno.test({
+  name: 'example with mixins',
+  fn: () => {
+    const LazyFoo = lazyclass(
+      () =>
+        class Foo {
+          constructor(public value: number) {}
+          foo() {
+            return this.value;
+          }
+        }
+    );
+
+    function Mixin1<B extends Constructor<{ value: number }>>(base: B) {
+      return class Mixin1 extends base {
+        mixin() {
+          this.value += 1;
+        }
+      };
+    }
+    function Mixin2<B extends Constructor<{ value: number }>>(base: B) {
+      return class Mixin1 extends base {
+        mixin2() {
+          this.value += 2;
+        }
+      };
+    }
+
+    const LazyBar = lazyclass(() => {
+      class Bar extends Mixin2(Mixin1(LazyFoo.getCompiled())) {
+        mixin() {
+          super.mixin();
+          this.bar();
+        }
+        bar() {
+          this.value += 2;
+        }
+      }
+      return Bar;
+    });
+
+    const bar = LazyBar.instantiate(1);
+    assertEquals(bar.value, 1);
+    bar.mixin();
+    assertEquals(bar.value, 4);
+    bar.mixin2();
+    assertEquals(bar.value, 6);
   },
 });
